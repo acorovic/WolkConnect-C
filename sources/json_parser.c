@@ -66,12 +66,10 @@ static bool serialize_sensor(reading_t* reading, char* buffer, size_t buffer_siz
     }
 
     if (reading_get_rtc(reading) > 0 &&
-        snprintf(buffer, buffer_size, "{\"utc\":%u,\"data\":\"%s\"}",
-                 reading_get_rtc(reading),
-                 data_buffer) >= (int)buffer_size) {
+        sprintf(buffer, "{\"utc\":%u,\"data\":\"%s\"}", reading_get_rtc(reading), data_buffer) >= (int)buffer_size) {
             return false;
     } else if (reading_get_rtc(reading) == 0 &&
-        snprintf(buffer, buffer_size, "{\"data\":\"%s\"}",
+        sprintf(buffer, "{\"data\":\"%s\"}",
         data_buffer) >= (int)buffer_size) {
         return false;
     }
@@ -86,9 +84,9 @@ static bool serialize_actuator(reading_t* reading, char* buffer, size_t buffer_s
         return false;
     }
 
-    switch (reading_get_actuator_state(reading)) {
+    switch (reading_get_actuator_status(reading)) {
     case ACTUATOR_STATE_READY:
-        if (snprintf(buffer, buffer_size, "{\"status\":%s,\"value\":\"%s\"}",
+        if (sprintf(buffer, "{\"status\":%s,\"value\":\"%s\"}",
                      "\"READY\"",
                      data_buffer) >= (int)buffer_size) {
             return false;
@@ -96,7 +94,7 @@ static bool serialize_actuator(reading_t* reading, char* buffer, size_t buffer_s
         break;
 
     case ACTUATOR_STATE_BUSY:
-        if (snprintf(buffer, buffer_size, "{\"status\":%s,\"value\":\"%s\"}",
+        if (sprintf(buffer, "{\"status\":%s,\"value\":\"%s\"}",
                      "\"BUSY\"",
                      data_buffer) >= (int)buffer_size) {
             return false;
@@ -104,7 +102,7 @@ static bool serialize_actuator(reading_t* reading, char* buffer, size_t buffer_s
         break;
 
     case ACTUATOR_STATE_ERROR:
-        if (snprintf(buffer, buffer_size, "{\"status\":%s,\"value\":\"%s\"}",
+        if (sprintf(buffer, "{\"status\":%s,\"value\":\"%s\"}",
                      "\"ERROR\"",
                      data_buffer) >= (int)buffer_size) {
             return false;
@@ -211,14 +209,14 @@ static bool deserialize_command(char* buffer, actuator_command_t* command)
 
     for (i = 1; i < parser_result; i++) {
         if (json_token_str_equal(buffer, &tokens[i], "command")) {
-            if (snprintf(command_buffer, WOLK_ARRAY_LENGTH(command_buffer), "%.*s", tokens[i + 1].end - tokens[i + 1].start,
+            if (sprintf(command_buffer, "%.*s", tokens[i + 1].end - tokens[i + 1].start,
                          buffer + tokens[i + 1].start) >= (int)WOLK_ARRAY_LENGTH(command_buffer)) {
                 return false;
             }
 
             i++;
         } else if (json_token_str_equal(buffer, &tokens[i], "value")) {
-            if (snprintf(value_buffer, WOLK_ARRAY_LENGTH(value_buffer), "%.*s", tokens[i + 1].end - tokens[i + 1].start,
+            if (sprintf(value_buffer, "%.*s", tokens[i + 1].end - tokens[i + 1].start,
                          buffer + tokens[i + 1].start) >= (int)WOLK_ARRAY_LENGTH(value_buffer)) {
                 return false;
             }
@@ -298,7 +296,7 @@ size_t json_serialize_configuration_items(configuration_item_t* first_config_ite
 
     memset(buffer, '\0', buffer_size);
 
-    if (snprintf(buffer, buffer_size, "{") >= (int)buffer_size) {
+    if (sprintf(buffer, "{") >= (int)buffer_size) {
         return num_serialized_config_items;
     }
 
@@ -308,7 +306,7 @@ size_t json_serialize_configuration_items(configuration_item_t* first_config_ite
 
         /* -1 so we can have enough space left to append closing '}' */
         num_bytes_to_write = buffer_size - strlen(buffer);
-        if (snprintf(buffer + strlen(buffer), buffer_size - strlen(buffer) - 1, "\"%s\":\"%s\"", conf_item_name, conf_item_value) >= (int)num_bytes_to_write - 1) {
+        if (sprintf(buffer + strlen(buffer), "\"%s\":\"%s\"", conf_item_name, conf_item_value) >= (int)num_bytes_to_write - 1) {
             break;
         }
 
@@ -328,13 +326,13 @@ size_t json_serialize_configuration_items(configuration_item_t* first_config_ite
         }
 
         num_bytes_to_write = buffer_size - strlen(buffer);
-        if (snprintf(buffer + strlen(buffer), buffer_size - strlen(buffer), ",") >= (int)num_bytes_to_write) {
+        if (sprintf(buffer + strlen(buffer), ",") >= (int)num_bytes_to_write) {
             break;
         }
     }
 
     num_bytes_to_write = buffer_size - strlen(buffer);
-    if (snprintf(buffer + strlen(buffer), buffer_size - strlen(buffer), "}") >= (int)num_bytes_to_write) {
+    if (sprintf(buffer + strlen(buffer), "}") >= (int)num_bytes_to_write) {
         return num_serialized_config_items;
     }
 
@@ -343,21 +341,23 @@ size_t json_serialize_configuration_items(configuration_item_t* first_config_ite
 
 size_t json_deserialize_configuration_items(char* buffer, size_t buffer_size, configuration_item_command_t* commands_buffer, size_t commands_buffer_size)
 {
-    WOLK_UNUSED(buffer_size);
 
+    int i;
+    char conf_item_name[CONFIGURATION_ITEM_NAME_SIZE];
+    char conf_item_value[CONFIGURATION_ITEM_VALUE_SIZE];
     jsmn_parser parser;
     jsmntok_t tokens[CONFIG_MESSAGE_MAX_JSON_TOKENS];
     int parser_result;
 
+
     configuration_item_command_t* current_config_command = commands_buffer;
     size_t num_deserialized_config_items = 0;
-    int i;
+
 
     char command_buffer[COMMAND_MAX_SIZE];
-    memset(commands_buffer, '\0', WOLK_ARRAY_LENGTH(command_buffer));
+    memset(commands_buffer, 0, WOLK_ARRAY_LENGTH(command_buffer));
 
-    char conf_item_name[CONFIGURATION_ITEM_NAME_SIZE];
-    char conf_item_value[CONFIGURATION_ITEM_VALUE_SIZE];
+    WOLK_UNUSED(buffer_size);
 
     jsmn_init(&parser);
     parser_result = jsmn_parse(&parser, buffer, strlen(buffer), tokens, WOLK_ARRAY_LENGTH(tokens));
@@ -369,7 +369,7 @@ size_t json_deserialize_configuration_items(char* buffer, size_t buffer_size, co
 
     for (i = 1; i < parser_result && num_deserialized_config_items < commands_buffer_size; i++) {
         if (json_token_str_equal(buffer, &tokens[i], "command")) {
-            if (snprintf(command_buffer, WOLK_ARRAY_LENGTH(command_buffer), "%.*s", tokens[i + 1].end - tokens[i + 1].start,
+            if (sprintf(command_buffer, "%.*s", tokens[i + 1].end - tokens[i + 1].start,
                          buffer + tokens[i + 1].start) >= (int)WOLK_ARRAY_LENGTH(command_buffer)) {
                 continue;
             }
@@ -386,12 +386,12 @@ size_t json_deserialize_configuration_items(char* buffer, size_t buffer_size, co
                 continue;
             }
 
-            if (snprintf(conf_item_name, WOLK_ARRAY_LENGTH(conf_item_name), "%.*s", tokens[i].end - tokens[i].start,
+            if (sprintf(conf_item_name, "%.*s", tokens[i].end - tokens[i].start,
                          buffer + tokens[i].start) >= (int)WOLK_ARRAY_LENGTH(conf_item_name)) {
                 continue;
             }
 
-            if (snprintf(conf_item_value, WOLK_ARRAY_LENGTH(conf_item_value), "%.*s", tokens[i + 1].end - tokens[i + 1].start,
+            if (sprintf(conf_item_value, "%.*s", tokens[i + 1].end - tokens[i + 1].start,
                          buffer + tokens[i + 1].start) >= (int)WOLK_ARRAY_LENGTH(conf_item_value)) {
                 continue;
             }

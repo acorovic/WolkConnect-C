@@ -16,14 +16,19 @@
  *******************************************************************************/
 #ifndef TRANSPORT_H
 #define TRANSPORT_H
+
+#ifndef NULL
+  #define NULL 0
+#endif
+
 typedef struct {
-	int (*send)(unsigned char *address, unsigned int bytes); 	///< pointer to function to send 'bytes' bytes, returns the actual number of bytes sent
-	int (*recv)(unsigned char *address, unsigned int maxbytes); 	///< pointer to function to receive upto 'maxbytes' bytes, returns the actual number of bytes copied
+        int (*send)(unsigned char *address, unsigned int bytes);
+        int (*recv)(unsigned char *address, unsigned int maxbytes);
 } transport_iofunctions_t;
 
-#define TRANSPORT_DONE	1
-#define TRANSPORT_AGAIN	0
-#define TRANSPORT_ERROR	-1
+#define TRANSPORT_DONE        1
+#define TRANSPORT_AGAIN        0
+#define TRANSPORT_ERROR        -1
 /**
 @note Blocks until requested buflen is sent
 */
@@ -64,9 +69,10 @@ We assume whatever connection needs to be done, it is externally established by 
 E.g.:
 A cell modem: you will call AT+whatever and put the modem in transparent mode, OR, you will embed
 the AT+xSENDx / AT+xRECVx commands into the former sendPacketBuffer() and getdatanb() functions
-@param	thisio	pointer to a structure containing all necessary stuff to handle direct serial I/O
-@returns	whatever indicator the system assigns to this link, if any. (a.k.a. : 'sock'), or TRANSPORT_ERROR for error
+@param        thisio        pointer to a structure containing all necessary stuff to handle direct serial I/O
+@returns        whatever indicator the system assigns to this link, if any. (a.k.a. : 'sock'), or TRANSPORT_ERROR for error
 */
 int transport_open(transport_iofunctions_t *thisio);
 int transport_close(int sock);
+
 #endif

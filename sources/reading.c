@@ -53,9 +53,9 @@ void reading_clear_array(reading_t* first_reading, size_t readings_count)
     }
 }
 
-void reading_set_data(reading_t* reading, char* data)
+void reading_set_data(reading_t* reading, char* data_p)
 {
-    reading_set_data_at(reading, data, 0);
+    reading_set_data_at(reading, data_p, 0);
 }
 
 char* reading_get_data(reading_t* reading)
@@ -66,20 +66,21 @@ char* reading_get_data(reading_t* reading)
 bool reading_get_delimited_data(reading_t* reading, char* buffer, size_t buffer_size)
 {
     size_t i;
+     size_t num_bytes_to_write;
     size_t data_dimensions = manifest_item_get_data_dimensions(reading_get_manifest_item(reading));
     char* data_delimiter = manifest_item_get_data_delimiter(reading_get_manifest_item(reading));
 
     memset(buffer, '\0', buffer_size);
     for (i = 0; i < data_dimensions; ++i) {
         if (i != 0) {
-            size_t num_bytes_to_write = buffer_size - strlen(buffer);
-            if (snprintf(buffer + strlen(buffer), (int)num_bytes_to_write, "%s", data_delimiter) >= (int)num_bytes_to_write) {
+            num_bytes_to_write = buffer_size - strlen(buffer);
+            if (sprintf(buffer + strlen(buffer), "%s", data_delimiter) >= (int)num_bytes_to_write) {
                 return false;
             }
         }
 
-        size_t num_bytes_to_write = buffer_size - strlen(buffer);
-        if (snprintf(buffer + strlen(buffer), (int)num_bytes_to_write, "%s", reading_get_data_at(reading, i)) >= (int)num_bytes_to_write) {
+        num_bytes_to_write = buffer_size - strlen(buffer);
+        if (sprintf(buffer + strlen(buffer), "%s", reading_get_data_at(reading, i)) >= (int)num_bytes_to_write) {
             return false;
         }
     }
@@ -87,13 +88,13 @@ bool reading_get_delimited_data(reading_t* reading, char* buffer, size_t buffer_
     return true;
 }
 
-void reading_set_data_at(reading_t* reading, char* data, size_t data_position)
+void reading_set_data_at(reading_t* reading, char* data_p, size_t data_position)
 {
     /* Sanity check */
-    WOLK_ASSERT(strlen(data) < READING_SIZE);
+    WOLK_ASSERT(strlen(data_p) < READING_SIZE);
     WOLK_ASSERT(data_position < READING_DIMENSIONS);
 
-    strcpy(reading->reading_data[data_position], data);
+    strcpy(reading->reading_data[data_position], data_p);
 }
 
 char* reading_get_data_at(reading_t* reading, size_t data_position)
